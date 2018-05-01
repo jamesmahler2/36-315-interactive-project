@@ -1,0 +1,93 @@
+---
+title: "NFL Play by Play"
+author: "James Mahler"
+date: "April 30, 2018"
+output: html_document
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library("shiny")
+library("tidyverse")
+library("readr")
+alldata <- read_csv("~/36-315/Project2/2017_pbp.csv")
+# create categorical variables based on WPA and EPA to determine if a play was a "success"
+alldata$isSuccess_EPA = ifelse(alldata$EPA>0 & !is.na(alldata$EPA), 1, 0)
+alldata$isSuccess_WPA = ifelse(alldata$WPA>0 & !is.na(alldata$WPA), 1, 0)
+# create categorical variable for yards to go
+alldata$ytg = ifelse(alldata$ydstogo<4, "short",
+                     ifelse(alldata$ydstogo<8, "medium",
+                            ifelse(alldata$ydstogo<11, "long", "xlong")))
+# create a categorical variable that merges Pass Location and Run Location to create
+# a general direction variable
+alldata$direction = NA  # new merged column start with NA
+alldata$direction[!is.na(alldata$PassLocation)] = alldata$PassLocation[!is.na(alldata$PassLocation)]  # merge with pass location
+alldata$direction[!is.na(alldata$RunLocation)] = alldata$RunLocation[!is.na(alldata$RunLocation)]  # merge with pass location
+
+
+play_selection <- alldata %>%
+  filter(!is.na(down), PlayType %in% c("Pass", "Run"),
+         !is.na(direction)) %>%
+  group_by(down, ytg, PlayType) %>%
+  summarise(count = n(),
+            success_rate_epa = sum(isSuccess_EPA)/count,
+            success_rate_wpa = sum(isSuccess_WPA)/count,
+            avg_yds = sum(Yards.Gained)/count,
+            epa_avg = sum(EPA) / count,
+            wpa_avg = sum(WPA) / count) %>%
+  mutate(freq = count/sum(count))
+
+play_selection_by_team <- alldata %>%
+  filter(!is.na(down), PlayType %in% c("Pass", "Run"),
+         !is.na(direction)) %>%
+  group_by(down, ytg, PlayType, posteam) %>%
+  summarise(count = n(),
+            success_rate_epa = sum(isSuccess_EPA)/count,
+            success_rate_wpa = sum(isSuccess_WPA)/count,
+            avg_yds = sum(Yards.Gained)/count,
+            epa_avg = sum(EPA) / count,
+            wpa_avg = sum(WPA) / count) %>%
+  mutate(freq = count/sum(count))
+
+shinyApp(
+  
+  ui = fluidPage(
+    inputPanel(
+      selectInput("down", label = "Down:",
+                  choices = c(1, 2, 3, 4), selected = 1),
+      selectInput("distance", label = "Distance:",
+                  choices = c("short", "medium", "long", "xlong"), selected = "long"),
+      selectInput("team", label = "Team:",
+                   choices = c("All", "NE", "KC","BUF","NYJ","WAS","PHI", "OAK", "TEN", "JAX", "HOU", "ARI", "DET", "CLE", "PIT", "ATL","CHI", "CIN", "BAL", "LA",  "IND", "CAR", "SF",  "SEA", "GB",  "DAL", "NYG", "NO",  "MIN", "DEN", "LAC", "TB", "MIA"), selected = "All")
+    ),
+    
+    plotOutput("play_plot")
+  ),
+  
+  server = function(input, output) {
+    output$play_plot <- renderPlot({
+      if(input$team == "All"){
+        ggplot(play_selection[play_selection$down == input$down & play_selection$ytg == input$distance,],
+               aes(x = factor(PlayType), y = count, fill = success_rate_wpa)) + geom_bar(stat = "identity") +
+          scale_fill_gradient(low = "gray100", high = "blue", limits = c(.15, .75)) +
+          labs(title = "Play Selection by Down and Distance", x = "Play Type", y = "Count",
+               fill = "Success Rate (WPA>0)")}
+      else{
+        ggplot(filter(play_selection_by_team, down == input$down, ytg == input$distance, posteam == input$team),
+               aes(x = factor(PlayType), y = count, fill = success_rate_wpa)) + geom_bar(stat = "identity") +
+          scale_fill_gradient(low = "gray100", high = "blue", limits = c(0, 1)) +
+          labs(title = "Play Selection by Down, Distance and Team", x = "Play Type", y = "Count",
+               fill = "Success Rate (WPA>0)")
+      }
+    })
+  },
+  
+  options = list(height = 550)
+)
+
+```
+
