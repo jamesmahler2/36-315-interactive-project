@@ -14,44 +14,49 @@ knitr::opts_chunk$set(echo = TRUE)
 library("shiny")
 library("tidyverse")
 library("readr")
-alldata <- read_csv("~/36-315/Project2/2017_pbp.csv")
+library("plotly")
+nfl_data <- read_csv("~/36-315/Project2/2017_pbp.csv")
 # create categorical variables based on WPA and EPA to determine if a play was a "success"
-alldata$isSuccess_EPA = ifelse(alldata$EPA>0 & !is.na(alldata$EPA), 1, 0)
-alldata$isSuccess_WPA = ifelse(alldata$WPA>0 & !is.na(alldata$WPA), 1, 0)
+nfl_data$isSuccess_EPA = ifelse(nfl_data$EPA>0 & !is.na(nfl_data$EPA), 1, 0)
+nfl_data$isSuccess_WPA = ifelse(nfl_data$WPA>0 & !is.na(nfl_data$WPA), 1, 0)
 # create categorical variable for yards to go
-alldata$ytg = ifelse(alldata$ydstogo<4, "short",
-                     ifelse(alldata$ydstogo<8, "medium",
-                            ifelse(alldata$ydstogo<11, "long", "xlong")))
+nfl_data$ytg = ifelse(nfl_data$ydstogo<4, "short",
+                     ifelse(nfl_data$ydstogo<8, "medium",
+                            ifelse(nfl_data$ydstogo<11, "long", "xlong")))
 # create a categorical variable that merges Pass Location and Run Location to create
 # a general direction variable
-alldata$direction = NA  # new merged column start with NA
-alldata$direction[!is.na(alldata$PassLocation)] = alldata$PassLocation[!is.na(alldata$PassLocation)]  # merge with pass location
-alldata$direction[!is.na(alldata$RunLocation)] = alldata$RunLocation[!is.na(alldata$RunLocation)]  # merge with pass location
+nfl_data$direction = NA  # new merged column start with NA
+nfl_data$direction[!is.na(nfl_data$PassLocation)] = nfl_data$PassLocation[!is.na(nfl_data$PassLocation)]  # merge with pass location
+nfl_data$direction[!is.na(nfl_data$RunLocation)] = nfl_data$RunLocation[!is.na(nfl_data$RunLocation)]  # merge with pass location
 
 
-play_selection <- alldata %>%
+play_selection <- nfl_data %>%
   filter(!is.na(down), PlayType %in% c("Pass", "Run"),
-         !is.na(direction)) %>%
+         !is.na(direction), !is.na(EPA)) %>%
   group_by(down, ytg, PlayType) %>%
   summarise(count = n(),
-            success_rate_epa = sum(isSuccess_EPA)/count,
             success_rate_wpa = sum(isSuccess_WPA)/count,
             avg_yds = sum(Yards.Gained)/count,
-            epa_avg = sum(EPA) / count,
-            wpa_avg = sum(WPA) / count) %>%
+            epa_avg = sum(EPA) / count) %>%
   mutate(freq = count/sum(count))
 
-play_selection_by_team <- alldata %>%
+play_selection_by_team <- nfl_data %>%
   filter(!is.na(down), PlayType %in% c("Pass", "Run"),
-         !is.na(direction)) %>%
+         !is.na(direction), !is.na(EPA)) %>%
   group_by(down, ytg, PlayType, posteam) %>%
   summarise(count = n(),
-            success_rate_epa = sum(isSuccess_EPA)/count,
             success_rate_wpa = sum(isSuccess_WPA)/count,
             avg_yds = sum(Yards.Gained)/count,
-            epa_avg = sum(EPA) / count,
-            wpa_avg = sum(WPA) / count) %>%
+            epa_avg = sum(EPA) / count) %>%
   mutate(freq = count/sum(count))
+
+receiver_data <- nfl_data %>% 
+  filter(PassOutcome == "Complete", down %in% c(1, 2, 3, 4)) %>% 
+  group_by(Receiver, down, posteam) %>% 
+  summarise(count = n(),
+            air_yds = mean(AirYards),
+            YAC = mean(YardsAfterCatch)) %>% 
+  filter(count>5)
 
 shinyApp(
   
@@ -62,10 +67,12 @@ shinyApp(
       selectInput("distance", label = "Distance:",
                   choices = c("short", "medium", "long", "xlong"), selected = "long"),
       selectInput("team", label = "Team:",
-                   choices = c("All", "NE", "KC","BUF","NYJ","WAS","PHI", "OAK", "TEN", "JAX", "HOU", "ARI", "DET", "CLE", "PIT", "ATL","CHI", "CIN", "BAL", "LA",  "IND", "CAR", "SF",  "SEA", "GB",  "DAL", "NYG", "NO",  "MIN", "DEN", "LAC", "TB", "MIA"), selected = "All")
+                   choices = c("All", sort(unique(nfl_data$posteam))), selected = "All")
     ),
     
-    plotOutput("play_plot")
+    plotOutput("play_plot"),
+    plotlyOutput("EPA_plot"),
+    plotlyOutput("receiver_plot")
   ),
   
   server = function(input, output) {
@@ -83,6 +90,32 @@ shinyApp(
           labs(title = "Play Selection by Down, Distance and Team", x = "Play Type", y = "Count",
                fill = "Success Rate (WPA>0)")
       }
+    })
+    output$EPA_plot <- renderPlotly({
+        EPA_plot <- ggplot(filter(play_selection_by_team, down == input$down, ytg == input$distance),
+               aes(x = avg_yds, y = epa_avg, color = PlayType, label = posteam)) + geom_point() +
+          labs(title = "Yards vs EPA for Each Team by Down and Distance", x = "Average Yards Gained",
+               y = "EPA (Expeceted Points Added)", color = "Play Type")
+        ggplotly(EPA_plot)
+    })
+    output$receiver_plot <- renderPlotly({
+      if(input$team == "All"){
+        yac_plot <- ggplot(filter(receiver_data, down == input$down, count>10),
+                                aes(x = air_yds, y = YAC)) +
+          geom_point(aes(text=sprintf("Receiver: %s<br>Catches: %s", Receiver, count))) +
+          coord_cartesian(xlim = c(-5, 20), ylim = c(0, 15)) + geom_smooth(method = "loess") +
+          labs(title = "Air Yards vs Yards After Catch by Down", x = "How Far Ball traveled in the Air",
+               y = "Yards Gained After Catch")
+      }
+      else{
+        yac_plot <- ggplot(filter(receiver_data, down == input$down, posteam == input$team),
+                           aes(x = air_yds, y = YAC)) +
+          geom_text(aes(label = Receiver, text=sprintf("Catches: %s", count))) +
+          coord_cartesian(xlim = c(-5, 20), ylim = c(0, 15)) +
+          labs(title = "Air Yards vs Yards After Catch by Down and Team", x = "How Far Ball traveled in the Air",
+               y = "Yards Gained After Catch")
+      }
+      ggplotly(yac_plot)
     })
   },
   
