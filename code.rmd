@@ -58,6 +58,15 @@ receiver_data <- nfl_data %>%
             YAC = mean(YardsAfterCatch)) %>% 
   filter(count>5)
 
+receiver_data_2 <- nfl_data %>% 
+  filter(PlayType == "Pass", !is.na(Receiver)) %>% 
+  group_by(Receiver) %>% 
+  summarise(count = n(),
+            catch_percent = sum(PassOutcome == "Complete")/count,
+            avg_yds_when_targeted = mean(AirYards),
+            avg_yds_gained_target = mean(Yards.Gained)) %>% 
+  filter(count>25)
+
 shinyApp(
   
   ui = fluidPage(
@@ -72,7 +81,8 @@ shinyApp(
     
     plotOutput("play_plot"),
     plotlyOutput("EPA_plot"),
-    plotlyOutput("receiver_plot")
+    plotlyOutput("receiver_plot"),
+    plotlyOutput("receiver_plot_2")
   ),
   
   server = function(input, output) {
@@ -116,6 +126,14 @@ shinyApp(
                y = "Yards Gained After Catch")
       }
       ggplotly(yac_plot)
+    })
+    output$receiver_plot_2 <- renderPlotly({
+      yds_plot <- ggplot(receiver_data_2, aes(x = avg_yds_when_targeted,y = avg_yds_gained_target,
+                                              color = catch_percent)) +
+        geom_point(aes(text=sprintf("Receiver: %s<br>Targets: %s", Receiver, count))) +
+        labs(title = "Air Yards vs Yards Gained for Receivers", x = "Average Air Yards When Targeted",
+                            y = "Average Yards Gained per Target", color = "Catch Percentage")
+      ggplotly(yds_plot)
     })
   },
   
