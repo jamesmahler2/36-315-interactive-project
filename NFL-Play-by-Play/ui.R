@@ -12,14 +12,14 @@ nfl_data_adam <- read.csv("nfl_data.csv")
 sidebar <- dashboardSidebar(
   sidebarMenu(
     menuItem("Home Page", tabName = "homepage", icon = icon("football-ball")),
-    menuItem("Graph1", tabName = "graph1", icon = icon("football-ball")), 
-    menuItem("Graph2", tabName = "graph2", icon = icon("football-ball")), 
+    menuItem("Play Selection", tabName = "graph1", icon = icon("football-ball")), 
+    #menuItem("Graph2", tabName = "graph2", icon = icon("football-ball")), 
     menuItem("Graph3", tabName = "graph3", icon = icon("football-ball")), 
     menuItem("Graph4", tabName = "graph4", icon = icon("football-ball")), 
     menuItem("Graph5", tabName = "graph5", icon = icon("football-ball")), 
     menuItem("Graph6", tabName = "graph6", icon = icon("football-ball")), 
     menuItem("Graph7", tabName = "graph7", icon = icon("football-ball")), 
-    menuItem("Graph8", tabName = "graph8", icon = icon("football-ball"))
+    menuItem("Receiver Efficiency", tabName = "graph8", icon = icon("football-ball"))
   )
 )
 
@@ -33,9 +33,9 @@ body <- dashboardBody(
             p("By Andrew Wissinger, James Mahler, Deepak Vanjani, and Adam Tucker")
     ),
     
-    ### Graph1 ###
+    ### Graph1 and Graph2 (they go together)###
     tabItem(tabName = "graph1",
-            h2("Graph1"), 
+            h2("Play Selection and Success by Down, Distance and Team"), 
             fluidPage(
               inputPanel(
                 selectInput("down", label = "Down:",
@@ -46,19 +46,7 @@ body <- dashboardBody(
                 selectInput("team", label = "Team:",
                                        choices = c("All", sort(unique(nfl_data$posteam))), 
                                        selected = "All")),
-              plotOutput("play_plot"))
-    ),
-    
-    ### Graph2 ###
-    tabItem(tabName = "graph2",
-            h2("Graph2"), 
-            fluidPage(
-              inputPanel(
-                selectInput("down2", label = "Down:",
-                            choices = c(1, 2, 3, 4), selected = 1),
-                selectInput("distance2", label = "Distance:",
-                            choices = c("short", "medium", "long", "xlong"), 
-                            selected = "long")), 
+              plotOutput("play_plot"),
               plotlyOutput("EPA_plot"))
     ),
     
@@ -136,8 +124,12 @@ body <- dashboardBody(
     
     ### Graph8 ###
     tabItem(tabName = "graph8",
-            h2("Graph8"), 
+            h2("Wide Receiver Efficiency"), 
             fluidPage(
+              inputPanel(
+                sliderInput("min_targets", label = "Minimum # of Targets:", min = 25, max = 150, 
+                            value = 25, step = 1)
+              ),
               plotlyOutput("receiver_plot_2"))
     )
   )

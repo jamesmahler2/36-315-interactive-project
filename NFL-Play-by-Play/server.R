@@ -153,10 +153,15 @@ function(input, output) {
   
   ### Graph2 ###
   output$EPA_plot <- renderPlotly({
-    EPA_plot <- ggplot(filter(play_selection_by_team, down == input$down2, ytg == input$distance2),
+    EPA_plot <- ggplot(filter(play_selection_by_team, down == input$down, ytg == input$distance),
                        aes(x = avg_yds, y = epa_avg, color = PlayType, label = posteam)) + geom_point() +
       labs(title = "Yards vs EPA for Each Team by Down and Distance", x = "Average Yards Gained",
            y = "EPA (Expeceted Points Added)", color = "Play Type")
+    if(input$team != "All"){
+      EPA_plot <- EPA_plot + geom_text(data = filter(play_selection_by_team, posteam == input$team,
+                                                     down == input$down, ytg == input$distance),
+                                       aes(label = input$team, fontface = "bold"), color = "black")
+    }
     ggplotly(EPA_plot)
   })
   
@@ -306,10 +311,12 @@ function(input, output) {
   
   ### Graph8 ###
   output$receiver_plot_2 <- renderPlotly({
-    yds_plot <- ggplot(receiver_data_2, aes(x = avg_yds_when_targeted, 
+    yds_plot <- ggplot(filter(receiver_data_2, count > input$min_targets), aes(x = avg_yds_when_targeted, 
                                             y = avg_yds_gained_target,
                                             color = catch_percent)) +
       geom_point(aes(text=sprintf("Receiver: %s<br>Targets: %s", Receiver, count))) +
+      coord_cartesian(xlim = c(min(receiver_data_2$avg_yds_when_targeted), max(receiver_data_2$avg_yds_when_targeted)),
+                      ylim = c(0, max(receiver_data_2$avg_yds_gained_target))) +
       labs(title = "Air Yards vs Yards Gained for Receivers", 
            x = "Average Air Yards When Targeted",
            y = "Average Yards Gained per Target", 
