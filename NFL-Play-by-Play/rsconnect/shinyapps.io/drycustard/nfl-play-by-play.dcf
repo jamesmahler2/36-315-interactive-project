@@ -1,0 +1,10 @@
+name: nfl-play-by-play
+title:
+username:
+account: drycustard
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 336501
+bundleId: 1368076
+url: https://drycustard.shinyapps.io/nfl-play-by-play/
+when: 1526016382.42156

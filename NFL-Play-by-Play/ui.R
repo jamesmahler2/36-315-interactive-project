@@ -29,7 +29,15 @@ body <- dashboardBody(
     tabItem(tabName = "homepage",
             h2("NFL Offensive Performance and Play Selection: 
                Analysis of NFL Play-by-Play Data"), 
-            p("By Andrew Wissinger, James Mahler, Deepak Vanjani, and Adam Tucker")
+            p("By Andrew Wissinger, James Mahler, Deepak Vanjani, and Adam Tucker"),
+            p("Hello, and welcome to our NFL play-by-play data visualization page. We used the nflscrapR data
+              set, which can be found here: https://github.com/ryurko/nflscrapR-data. The data set contains every
+              NFL play from the 2017 season. In this app, we analyze a few things including play selection, win
+              probability added, and wide receiver performance. Some variable explanations are as follows: WPA is
+              'win probability added', and is a measure of how much the offensive team added to their win probability
+              on a given play. We say a play is successful if WPA is greater than zero. EPA is 'expected points
+              added', and measures how many points the offensive team added to their expected point total. The
+              rest of the variables are pretty self explanatory. Enjoy!")
     ),
     
     ### Graph1 and Graph2 (they go together)###
@@ -102,7 +110,7 @@ body <- dashboardBody(
             h2("Comparison of Measures of Success"), 
             p("This shows the correlation between the two main measures of success for a play: win probability
               added and expected points added. This shows us how consistent the measures are with each other and
-              they differ amongst teams."),
+              how they differ amongst teams."),
             fluidPage(
               inputPanel(
                 radioButtons("quarter1", label = "Which quarter?",
@@ -155,5 +163,6 @@ body <- dashboardBody(
 dashboardPage(
   dashboardHeader(title = "NFL Play-by-Play", titleWidth = 300),
   sidebar,
-  body
+  body, 
+  skin = "red"
 )

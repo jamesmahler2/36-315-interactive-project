@@ -141,13 +141,13 @@ function(input, output) {
              aes(x = factor(PlayType), y = count, fill = success_rate_wpa)) + geom_bar(stat = "identity") +
         scale_fill_gradient(low = "gray100", high = "blue", limits = c(.15, .75)) +
         labs(title = "Play Selection by Down and Distance", x = "Play Type", y = "Count",
-             fill = "Success Rate (WPA>0)")}
+             fill = "Success Rate (WPA>0)") + theme_bw() + theme(text = element_text(size = 16))}
     else{
       ggplot(filter(play_selection_by_team, down == input$down, ytg == input$distance, posteam == input$team),
              aes(x = factor(PlayType), y = count, fill = success_rate_wpa)) + geom_bar(stat = "identity") +
         scale_fill_gradient(low = "gray100", high = "blue", limits = c(0, 1)) +
         labs(title = "Play Selection by Down, Distance and Team", x = "Play Type", y = "Count",
-             fill = "Success Rate (WPA>0)")
+             fill = "Success Rate (WPA>0)") + theme_bw()
     }
   })
   
@@ -156,7 +156,7 @@ function(input, output) {
     EPA_plot <- ggplot(filter(play_selection_by_team, down == input$down, ytg == input$distance),
                        aes(x = avg_yds, y = epa_avg, color = PlayType, label = posteam)) + geom_point() +
       labs(title = "Yards vs EPA for Each Team by Down and Distance", x = "Average Yards Gained",
-           y = "EPA (Expeceted Points Added)", color = "Play Type")
+           y = "EPA (Expeceted Points Added)", color = "Play Type") + theme_bw()
     if(input$team != "All"){
       EPA_plot <- EPA_plot + geom_text(data = filter(play_selection_by_team, posteam == input$team,
                                                      down == input$down, ytg == input$distance),
@@ -173,7 +173,7 @@ function(input, output) {
         geom_point(aes(text=sprintf("Receiver: %s<br>Catches: %s", Receiver, count))) +
         coord_cartesian(xlim = c(-5, 20), ylim = c(0, 15)) + geom_smooth(method = "loess") +
         labs(title = "Air Yards vs Yards After Catch by Down", x = "How Far Ball traveled in the Air",
-             y = "Yards Gained After Catch")
+             y = "Yards Gained After Catch") + theme_bw()
     }
     else{
       yac_plot <- ggplot(filter(receiver_data, down == input$down3, posteam == input$team3),
@@ -181,7 +181,7 @@ function(input, output) {
         geom_text(aes(label = Receiver, text=sprintf("Catches: %s", count))) +
         coord_cartesian(xlim = c(-5, 20), ylim = c(0, 15)) +
         labs(title = "Air Yards vs Yards After Catch by Down and Team", x = "How Far Ball traveled in the Air",
-             y = "Yards Gained After Catch")
+             y = "Yards Gained After Catch") + theme_bw()
     }
     ggplotly(yac_plot)
   })
@@ -192,7 +192,9 @@ function(input, output) {
     ggplot(subset(newdat, posteam == input$team4), 
            aes(x = YardsAfterCatch, y = WPA)) + geom_point() + 
       geom_smooth(method = "lm", se = input$show_conf) + 
-      labs(x = "Yards After Catch", y = "Win Probability Added")
+      labs(x = "Yards After Catch", y = "Win Probability Added", 
+           title = "Yards After Catch vs WPA") + 
+      theme_bw() + theme(text = element_text(size = 16))
   })
   
   ### Graph5 ###
@@ -205,10 +207,11 @@ function(input, output) {
       geom_boxplot() + 
       stat_summary(fun.data = give.n, geom = "text", 
                    fun.y = median, position = position_dodge(width = 0.75), 
-                   color = "black") + labs(x = "Pass Location", 
-                                           y = "Win Probability Added") + 
+                   color = "black") + 
+      labs(x = "Pass Location", y = "Win Probability Added",
+           title = "WPA by Pass Location") + 
       scale_x_discrete(labels=c("left" = "Left", "middle" = "Middle", 
-                                "right" = "Right"))
+                                "right" = "Right")) + theme_bw()
     ggplotly(p)
   })
   
@@ -248,20 +251,19 @@ function(input, output) {
                paste("Average EPA and WPA during Quarter", selected_data, 
                      "for All Teams in 2017")) +
         coord_cartesian(xlim = c(-.25, .25), ylim = c(-0.01, 0.01)) +
-        theme_minimal()
+        theme(legend.position="bottom") + theme_bw()
     } else {
       a1 = ggplot(graph1_plot_data, aes(x = EPA, y = WPA, 
                                         group = Team, color = Qtr)) +
         geom_point(alpha = 0.65) +
         geom_hline(yintercept = 0, linetype = "dashed") +
         geom_vline(xintercept = 0, linetype = "dashed") +
-        labs(title = "Average EPA and WPA during All Quarters for All Teams
-             in 2017",
+        labs(title = "Average EPA and WPA during All Quarters for All Teams in 2017",
              x = "Average Expected Points Added per Play",
              y = "Average Win Probability Added per Play",
              color = "Quarter") +
         coord_cartesian(xlim = c(-.25, .25), ylim = c(-0.01, 0.01)) +
-        theme_minimal()
+        theme(legend.position="bottom") + theme_bw()
     }
     ggplotly(a1)
   })
@@ -294,7 +296,7 @@ function(input, output) {
              y = "Amount of Plays",
              title = paste("Offensive Play Calling in Quarter",
                            selected_qtr)) +
-        theme_minimal()
+        theme_bw()
     } else {
       a2_graph_data <-
         filter(graph2_plot_data, score_state == selected_score)
@@ -304,7 +306,7 @@ function(input, output) {
              y = "Amount of Plays",
              title = "Offensive Play Calling in All Quarters") +
         facet_wrap(~ qtr, ncol = 2)
-      theme_minimal()
+      theme_bw()
     }
     ggplotly(a2)
   })
@@ -320,7 +322,7 @@ function(input, output) {
       labs(title = "Air Yards vs Yards Gained for Receivers", 
            x = "Average Air Yards When Targeted",
            y = "Average Yards Gained per Target", 
-           color = "Catch Percentage")
+           color = "Catch Percentage") + theme_bw()
     ggplotly(yds_plot)
   })
 }
